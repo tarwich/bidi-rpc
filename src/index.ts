@@ -16,10 +16,25 @@ enum WebSocketState {
   CLOSED = 3,
 }
 
-export type ISocket = Pick<
-  WebSocket,
-  'send' | 'addEventListener' | 'readyState'
->;
+type SocketEventOptions = { once: boolean };
+
+export interface ISocket extends Pick<WebSocket, 'send' | 'readyState'> {
+  addEventListener(
+    type: 'message',
+    listener: (event: { data: any }) => void,
+    options?: SocketEventOptions
+  ): void;
+  addEventListener(
+    type: 'open',
+    listener: (event: {}) => void,
+    options?: SocketEventOptions
+  ): void;
+  addEventListener(
+    type: 'message',
+    listener: (event: { data: any }) => void,
+    options?: SocketEventOptions
+  ): void;
+}
 
 type FilterValues<T, U> = {
   [P in keyof T]: T[P] extends U ? P : never;
@@ -124,7 +139,7 @@ export const makeSocketRpc = <
         }
 
         try {
-          const result = await method(...data.params);
+          const result = await method.call(localHandlers, ...data.params);
           return send({ id: data.id, result });
         } catch (e) {
           return send(internalError(data.id, e));
