@@ -30,3 +30,4 @@ jobs:
           env
           git add .
           git commit -m "Build site [skip ci]"
+          git push origin HEAD:$GITHUB_HEAD_REF
