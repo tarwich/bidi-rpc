@@ -1,7 +1,13 @@
 # Run tests whenever a push or pull request is made to the repository
 name: Node.js CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
 
 jobs:
   build:
