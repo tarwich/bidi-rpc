@@ -27,6 +27,7 @@ jobs:
       - run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "tarwich@gmail.com"
+          git status
           git add .
           git commit -m "Build site [skip ci]"
           git push
