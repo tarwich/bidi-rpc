@@ -34,9 +34,13 @@ const makeSocketRpc = (socket, localHandlers) => {
   const calls = /* @__PURE__ */ new Map();
   const connected = new Promise((resolve, reject) => {
     if (socket.readyState === 0) {
-      socket.addEventListener("open", () => {
-        resolve();
-      }, { once: true });
+      socket.addEventListener(
+        "open",
+        () => {
+          resolve();
+        },
+        { once: true }
+      );
     } else if (socket.readyState === 1) {
       resolve();
     } else {
@@ -51,14 +55,17 @@ const makeSocketRpc = (socket, localHandlers) => {
       socket.send(payload);
     });
   };
-  const result = new Proxy({}, {
-    get(target, propKey) {
-      return async (...args) => {
-        await connected;
-        return sendCall(String(propKey), args);
-      };
+  const result = new Proxy(
+    {},
+    {
+      get(target, propKey) {
+        return async (...args) => {
+          await connected;
+          return sendCall(String(propKey), args);
+        };
+      }
     }
-  });
+  );
   socket.addEventListener("message", async (event) => {
     try {
       const data = JSON.parse(event.data);
@@ -92,10 +99,12 @@ const makeSocketRpc = (socket, localHandlers) => {
       }
     } catch (error) {
       console.error(error);
-      socket.send(JSON.stringify({
-        jsonrpc,
-        error: { code: -32601, message: "Invalid JSON" }
-      }));
+      socket.send(
+        JSON.stringify({
+          jsonrpc,
+          error: { code: -32601, message: "Invalid JSON" }
+        })
+      );
     }
   });
   return result;
