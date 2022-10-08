@@ -24,7 +24,10 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: npm ci
-      - run: npm test -- --coverage --coverageReporters json-summary text | tee coverage.txt
+      - name: Run tests
+        run: |
+          mkdir -p coverage
+          npm test -- --coverage --coverageReporters json-summary text | tee coverage/coverage.txt
         env:
           CI: true
       - name: Jest coverage comment
