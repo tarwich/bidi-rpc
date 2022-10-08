@@ -2,7 +2,4 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  collectCoverage: true,
-  coverageReporters: ['json-summary'],
-  reporters: ['default', 'jest-junit'],
 };
