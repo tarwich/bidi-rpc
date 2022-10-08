@@ -16,6 +16,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [14.x]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -26,19 +29,10 @@ jobs:
           node-version: 16.x
       - run: npm ci
       - run: npm run build
-      - run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "tarwich@gmail.com"
-          env
-          git add .
-          git commit -m "Build site [skip ci]"
-      - uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.head_ref }}
       - name: Update pull request
         uses: EndBug/add-and-commit@v9
         with:
           author_name: GitHub Actions
           add: 'dist'
           fetch: false
+          push: true
