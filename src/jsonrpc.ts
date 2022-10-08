@@ -22,7 +22,7 @@ export const methodNotFoundError = (id: string) => ({
   id,
   error: {
     code: -32601,
-    message: 'Method not found!',
+    message: 'Method not found',
   },
 });
 
