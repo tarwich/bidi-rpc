@@ -17,7 +17,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
       - name: Use Node.js 16.x
         uses: actions/setup-node@v1
         with:
@@ -34,3 +36,9 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.head_ref }}
+      - name: Update pull request
+        uses: EndBug/add-and-commit@v9
+        with:
+          author_name: GitHub Actions
+          add: 'dist'
+          fetch: false

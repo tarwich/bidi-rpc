@@ -28,9 +28,3 @@ jobs:
         env:
           CI: true
       - run: npm run build
-      - name: Update pull request
-        uses: EndBug/add-and-commit@v9
-        with:
-          author_name: GitHub Actions
-          add: 'dist'
-          fetch: false
