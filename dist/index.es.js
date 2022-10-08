@@ -1,112 +1,78 @@
-function uuidV4() {
-  const uuid = new Array(36);
-  for (let i = 0; i < 36; i++) {
-    uuid[i] = Math.floor(Math.random() * 16);
-  }
-  uuid[14] = 4;
-  uuid[19] = uuid[19] &= ~(1 << 2);
-  uuid[19] = uuid[19] |= 1 << 3;
-  uuid[8] = uuid[13] = uuid[18] = uuid[23] = "-";
-  return uuid.map((x) => x.toString(16)).join("");
+function y() {
+  const e = new Array(36);
+  for (let n = 0; n < 36; n++)
+    e[n] = Math.floor(Math.random() * 16);
+  return e[14] = 4, e[19] = e[19] &= ~(1 << 2), e[19] = e[19] |= 1 << 3, e[8] = e[13] = e[18] = e[23] = "-", e.map((n) => n.toString(16)).join("");
 }
-const jsonrpc = "2.0";
-const isFunctionCallMessage = (message) => {
-  return message.jsonrpc === jsonrpc && typeof message.method === "string" && Array.isArray(message.params);
-};
-const methodNotFoundError = (id) => ({
-  jsonrpc,
-  id,
+const i = "2.0", p = (e) => e.jsonrpc === i && typeof e.method == "string" && Array.isArray(e.params), g = (e) => ({
+  jsonrpc: i,
+  id: e,
   error: {
     code: -32601,
     message: "Method not found"
   }
-});
-const internalError = (id, error) => ({
-  jsonrpc,
-  id,
+}), m = (e, n) => ({
+  jsonrpc: i,
+  id: e,
   error: {
     code: -32603,
     message: "Unexpected error",
-    data: error
+    data: n
   }
-});
-const makeSocketRpc = (socket, localHandlers) => {
-  const calls = /* @__PURE__ */ new Map();
-  const connected = new Promise((resolve, reject) => {
-    if (socket.readyState === 0) {
-      socket.addEventListener(
-        "open",
-        () => {
-          resolve();
-        },
-        { once: true }
-      );
-    } else if (socket.readyState === 1) {
-      resolve();
-    } else {
-      reject(new Error("Socket is closed"));
-    }
-  });
-  const sendCall = (method, params) => {
-    const id = uuidV4();
-    const payload = JSON.stringify({ jsonrpc, id, method, params });
-    return new Promise((resolve, reject) => {
-      calls.set(id, { resolve, reject });
-      socket.send(payload);
+}), S = (e, n) => {
+  const a = /* @__PURE__ */ new Map(), c = new Promise((s, r) => {
+    e.readyState === 0 ? e.addEventListener(
+      "open",
+      () => {
+        s();
+      },
+      { once: !0 }
+    ) : e.readyState === 1 ? s() : r(new Error("Socket is closed"));
+  }), u = (s, r) => {
+    const o = y(), t = JSON.stringify({ jsonrpc: i, id: o, method: s, params: r });
+    return new Promise((d, f) => {
+      a.set(o, { resolve: d, reject: f }), e.send(t);
     });
-  };
-  const result = new Proxy(
+  }, l = new Proxy(
     {},
     {
-      get(target, propKey) {
-        return async (...args) => {
-          await connected;
-          return sendCall(String(propKey), args);
-        };
+      get(s, r) {
+        return async (...o) => (await c, u(String(r), o));
       }
     }
   );
-  socket.addEventListener("message", async (event) => {
+  return e.addEventListener("message", async (s) => {
     try {
-      const data = JSON.parse(event.data);
-      const send = (message) => socket.send(JSON.stringify({ jsonrpc, ...message }));
-      if (data.jsonrpc !== jsonrpc) {
+      const r = JSON.parse(s.data), o = (t) => e.send(JSON.stringify({ jsonrpc: i, ...t }));
+      if (r.jsonrpc !== i)
         return;
-      }
-      if (isFunctionCallMessage(data)) {
-        const method = localHandlers && localHandlers[data.method];
-        if (!method || typeof method !== "function") {
-          return send(methodNotFoundError(data.id));
-        }
+      if (p(r)) {
+        const t = n && n[r.method];
+        if (!t || typeof t != "function")
+          return o(g(r.id));
         try {
-          const result2 = await method.call(localHandlers, ...data.params);
-          return send({ id: data.id, result: result2 });
-        } catch (e) {
-          return send(internalError(data.id, e));
+          const d = await t.call(n, ...r.params);
+          return o({ id: r.id, result: d });
+        } catch (d) {
+          return o(m(r.id, d));
         }
-      } else if ("result" in data) {
-        const call = calls.get(data.id);
-        if (call) {
-          call.resolve(data.result);
-          calls.delete(data.id);
-        }
-      } else if ("error" in data) {
-        const call = calls.get(data.id);
-        if (call) {
-          call.reject(data.error);
-          calls.delete(data.id);
-        }
+      } else if ("result" in r) {
+        const t = a.get(r.id);
+        t && (t.resolve(r.result), a.delete(r.id));
+      } else if ("error" in r) {
+        const t = a.get(r.id);
+        t && (t.reject(r.error), a.delete(r.id));
       }
-    } catch (error) {
-      console.error(error);
-      socket.send(
+    } catch (r) {
+      console.error(r), e.send(
         JSON.stringify({
-          jsonrpc,
+          jsonrpc: i,
           error: { code: -32601, message: "Invalid JSON" }
         })
       );
     }
-  });
-  return result;
+  }), l;
 };
-export { makeSocketRpc };
+export {
+  S as makeSocketRpc
+};

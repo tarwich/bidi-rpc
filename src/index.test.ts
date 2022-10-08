@@ -83,7 +83,10 @@ describe('SocketRPC', () => {
     });
     const result = makeSocketRpc<{ test(): void }>(client).test();
 
-    expect(result).rejects.toThrow('test');
+    expect(result).rejects.toMatchObject({
+      code: -32603,
+      message: 'Unexpected error',
+    });
   });
 
   it("should be able to wrap a socket that's already opened", async () => {
