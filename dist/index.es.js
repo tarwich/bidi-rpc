@@ -9,7 +9,7 @@ const i = "2.0", p = (e) => e.jsonrpc === i && typeof e.method == "string" && Ar
   id: e,
   error: {
     code: -32601,
-    message: "Method not found"
+    message: "Method not found!"
   }
 }), m = (e, n) => ({
   jsonrpc: i,
