@@ -132,8 +132,6 @@ export const makeSocketRpc = <
         return;
       }
 
-      console.log('Received message', data);
-
       // Handle function call
       if (isFunctionCallMessage(data)) {
         const method =
