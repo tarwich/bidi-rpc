@@ -8,7 +8,7 @@ const d = "2.0", v = (e) => e.jsonrpc === d && typeof e.method == "string" && Ar
     code: -32601,
     message: "Method not found"
   }
-}), g = (e, t) => ({
+}), w = (e, t) => ({
   jsonrpc: d,
   id: e,
   error: {
@@ -16,7 +16,7 @@ const d = "2.0", v = (e) => e.jsonrpc === d && typeof e.method == "string" && Ar
     message: "Unexpected error",
     data: t
   }
-}), w = (e) => e && e.jsonrpc === d && typeof e.id == "string" && e.result !== void 0, m = (e) => e && e.jsonrpc === d && typeof e.id == "string" && e.error && typeof e.error.message == "string", j = (e) => e && e.jsonrpc === d && typeof e.id == "string" && ("value" in e || "done" in e), E = (e) => e && typeof e[Symbol.asyncIterator] == "function";
+}), g = (e) => e && e.jsonrpc === d && typeof e.id == "string" && e.result !== void 0, m = (e) => e && e.jsonrpc === d && typeof e.id == "string" && e.error && typeof e.error.message == "string", j = (e) => e && e.jsonrpc === d && typeof e.id == "string" && ("value" in e || "done" in e), E = (e) => e && typeof e[Symbol.asyncIterator] == "function";
 class b {
   constructor() {
     a(this, "_done");
@@ -65,47 +65,47 @@ const C = (e, t) => {
       { once: !0 }
     ) : e.readyState === 1 ? u() : r(new Error("Socket is closed"));
   }), f = (u, r) => {
-    const i = q(), n = JSON.stringify({ jsonrpc: d, id: i, method: u, params: r });
-    return new Promise((s, l) => {
-      o.set(i, { resolve: s, reject: l }), e.send(n);
+    const s = q(), n = JSON.stringify({ jsonrpc: d, id: s, method: u, params: r });
+    return new Promise((i, l) => {
+      o.set(s, { resolve: i, reject: l }), e.send(n);
     });
   }, h = new Proxy(
     {},
     {
       get(u, r) {
-        return async (...i) => (await c, f(String(r), i));
+        return async (...s) => (await c, f(String(r), s));
       }
     }
   );
   return e.addEventListener("message", async (u) => {
     try {
-      const r = JSON.parse(u.data), i = (n) => e.send(JSON.stringify({ jsonrpc: d, ...n }));
+      const r = JSON.parse(u.data), s = (n) => e.send(JSON.stringify({ jsonrpc: d, ...n }));
       if (r.jsonrpc !== d)
         return;
-      if (console.log("Received message", r), v(r)) {
+      if (v(r)) {
         const n = t && t[r.method];
         if (!n || typeof n != "function")
-          return i(S(r.id));
+          return s(S(r.id));
         try {
-          const s = await n.call(t, ...r.params);
-          if (E(s)) {
-            for await (const l of s)
-              i({ id: r.id, value: l });
-            return i({ id: r.id, done: !0 });
+          const i = await n.call(t, ...r.params);
+          if (E(i)) {
+            for await (const l of i)
+              s({ id: r.id, value: l });
+            return s({ id: r.id, done: !0 });
           } else
-            i({ id: r.id, result: s });
+            s({ id: r.id, result: i });
           return;
-        } catch (s) {
-          return i(g(r.id, s));
+        } catch (i) {
+          return s(w(r.id, i));
         }
-      } else if (w(r)) {
+      } else if (g(r)) {
         const n = o.get(r.id);
         n && (n.resolve(r.result), o.delete(r.id));
       } else if (j(r)) {
         const n = o.get(r.id);
         if (n) {
-          const s = n.iterableSink || new b();
-          n.iterableSink = s, r.done ? (s.end(), o.delete(r.id)) : (s.push(r.value), n.resolve(s));
+          const i = n.iterableSink || new b();
+          n.iterableSink = i, r.done ? (i.end(), o.delete(r.id)) : (i.push(r.value), n.resolve(i));
         }
       } else if (m(r)) {
         const n = o.get(r.id);
