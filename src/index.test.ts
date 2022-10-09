@@ -97,4 +97,107 @@ describe('SocketRPC', () => {
 
     expect(server.send).toHaveBeenCalled();
   }, 200);
+
+  it('Should fail when run on sockets that are closed', async () => {
+    const client = new MockWebSocket();
+    const server = new MockWebSocket();
+    server.readyState = 3; // CLOSED
+
+    makeSocketRpc(client);
+    const serverRpc = makeSocketRpc<{ foo(): string }>(server);
+
+    const call = serverRpc.foo();
+    await expect(call).rejects.toThrowError('Socket is closed');
+
+    {
+      server.readyState = 2; // CLOSING
+      const call = serverRpc.foo();
+
+      await expect(call).rejects.toThrowError('Socket is closed');
+    }
+  });
+
+  it('Should fail when run on sockets that are closing', async () => {
+    const client = new MockWebSocket();
+    const server = new MockWebSocket();
+    server.readyState = 2; // CLOSING
+
+    makeSocketRpc(client);
+    const serverRpc = makeSocketRpc<{ foo(): string }>(server);
+
+    const call = serverRpc.foo();
+    await expect(call).rejects.toThrowError('Socket is closed');
+  });
+
+  it('Should wait for sockets that are connecting', async () => {
+    server.readyState = 0; // CONNECTING
+
+    makeSocketRpc(client, { foo: () => 'bar' });
+    const serverRpc = makeSocketRpc<{ foo(): string }>(server);
+
+    let resolved = false;
+    const call = serverRpc.foo().then((result) => {
+      resolved = true;
+      return result;
+    });
+    expect(resolved).toBe(false);
+    server.emit('open', null);
+    await expect(call).resolves.toBe('bar');
+  }, 500);
+
+  it('should ignore messages with the wrong jsonrpc version', async () => {
+    const handlers = {
+      foo: jest.fn().mockReturnValue('bar'),
+    };
+    makeSocketRpc(server, handlers);
+    const clientRpc = makeSocketRpc<{ foo(): void }>(client);
+
+    // This message should go through
+    server.emit('message', {
+      data: JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'foo',
+        params: [],
+      }),
+    });
+
+    expect(handlers.foo).toHaveBeenCalledTimes(1);
+
+    // This message be ignored
+    server.emit('message', {
+      data: JSON.stringify({
+        jsonrpc: '1.0',
+        method: 'foo',
+        params: [],
+      }),
+    });
+
+    expect(handlers.foo).toHaveBeenCalledTimes(1);
+  });
+
+  it('should return a method not found error', async () => {
+    makeSocketRpc(server, {});
+    const clientRpc = makeSocketRpc<{ foo(): void }>(client);
+
+    const result = clientRpc.foo();
+
+    await expect(result).rejects.toMatchObject({
+      code: -32601,
+      message: 'Method not found',
+    });
+  });
+
+  it('should return a parse error', async () => {
+    makeSocketRpc(server, {});
+
+    client.addEventListener('message', (event: any) => {
+      expect(event.data).toMatchObject({
+        code: -32700,
+        message: 'Parse error',
+      });
+    });
+
+    const result = client.send('not json');
+    expect(result).toBeUndefined();
+  });
 });

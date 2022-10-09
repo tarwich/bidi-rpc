@@ -79,6 +79,8 @@ export const makeSocketRpc = <
   >();
   const connected = new Promise<void>((resolve, reject) => {
     if (socket.readyState === WebSocketState.CONNECTING) {
+      // If the socket is connecting, add an event listener to resolve the promise
+      // when it opens
       socket.addEventListener(
         'open',
         () => {
@@ -87,8 +89,10 @@ export const makeSocketRpc = <
         { once: true }
       );
     } else if (socket.readyState === WebSocketState.OPEN) {
+      // If the socket is already open, resolve the promise immediately
       resolve();
     } else {
+      // If the socket is closed or closing, reject the promise
       reject(new Error('Socket is closed'));
     }
   });
@@ -104,6 +108,8 @@ export const makeSocketRpc = <
     });
   };
 
+  // Create a lazy getter that will wait for the socket to be connected before
+  // sending any calls
   const result = new Proxy(
     {},
     {
@@ -126,6 +132,7 @@ export const makeSocketRpc = <
       const send = (message: any) =>
         socket.send(JSON.stringify({ jsonrpc, ...message }));
 
+      // If the jsonrpc version is the wrong version, ignore the message
       if (data.jsonrpc !== jsonrpc) {
         return;
       }
@@ -134,6 +141,7 @@ export const makeSocketRpc = <
         const method =
           localHandlers && localHandlers[data.method as keyof TLocal];
 
+        // Calling a method that doesn't exist
         if (!method || typeof method !== 'function') {
           return send(methodNotFoundError(data.id));
         }
@@ -160,6 +168,7 @@ export const makeSocketRpc = <
         }
       }
     } catch (error) {
+      // Handle generic errors, such as JSON parsing errors
       console.error(error);
       socket.send(
         JSON.stringify({
