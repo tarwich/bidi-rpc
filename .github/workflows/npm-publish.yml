@@ -1,0 +1,26 @@
+# Whenever a push is made to master, build, update the version, and publish to
+# npm
+name: npm-publish
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 12
+      - run: npm ci
+      - run: npm run build
+      - run: npm version patch -m "Bump version to %s"
+      - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - uses: EndBug/add-and-commit@v4
+        with:
+          message: 'Bump version'
