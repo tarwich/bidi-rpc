@@ -1,3 +1,4 @@
+export { AsyncIterableSink } from './lib/iterable-sink';
 declare type SocketEventOptions = {
     once: boolean;
 };
@@ -20,5 +21,4 @@ export declare type PromiseMethods<T> = {
 };
 export declare type Rpc<T> = PromiseMethods<T>;
 export declare const makeSocketRpc: <TRemote extends object, TLocal extends object = any>(socket: ISocket, localHandlers?: TLocal | undefined) => Rpc<TRemote>;
-export {};
 //# sourceMappingURL=index.d.ts.map
