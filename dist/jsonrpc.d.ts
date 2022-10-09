@@ -28,6 +28,7 @@ export declare type FunctionCallResponse = {
     result: any;
     id: string;
 };
+export declare const isFunctionCallResponse: (message?: any) => message is FunctionCallResponse;
 export declare type ErrorResponse = {
     jsonrpc: typeof jsonrpc;
     id: string;
@@ -36,4 +37,13 @@ export declare type ErrorResponse = {
         message: string;
     };
 };
+export declare const isErrorResponse: (message: any) => message is ErrorResponse;
+export declare type IterableFunctionCallResponse<T = any> = {
+    jsonrpc: typeof jsonrpc;
+    id: string;
+    value: T;
+    done: boolean;
+};
+export declare const isIterableFunctionCallResponse: (message?: any) => message is IterableFunctionCallResponse<any>;
+export declare type JsonRpcMessage = FunctionCallMessage | FunctionCallResponse | ErrorResponse;
 //# sourceMappingURL=jsonrpc.d.ts.map

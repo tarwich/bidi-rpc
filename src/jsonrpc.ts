@@ -42,6 +42,17 @@ export type FunctionCallResponse = {
   id: string;
 };
 
+export const isFunctionCallResponse = (
+  message?: any
+): message is FunctionCallResponse => {
+  return (
+    message &&
+    message.jsonrpc === jsonrpc &&
+    typeof message.id === 'string' &&
+    message.result !== undefined
+  );
+};
+
 export type ErrorResponse = {
   jsonrpc: typeof jsonrpc;
   id: string;
@@ -50,3 +61,38 @@ export type ErrorResponse = {
     message: string;
   };
 };
+
+export const isErrorResponse = (message: any): message is ErrorResponse => {
+  return (
+    message &&
+    message.jsonrpc === jsonrpc &&
+    typeof message.id === 'string' &&
+    message.error &&
+    // Suggested by IDE, but doesn't seem necessary
+    // typeof message.error.code === 'number' &&
+    typeof message.error.message === 'string'
+  );
+};
+
+export type IterableFunctionCallResponse<T = any> = {
+  jsonrpc: typeof jsonrpc;
+  id: string;
+  value: T;
+  done: boolean;
+};
+
+export const isIterableFunctionCallResponse = (
+  message?: any
+): message is IterableFunctionCallResponse => {
+  return (
+    message &&
+    message.jsonrpc === jsonrpc &&
+    typeof message.id === 'string' &&
+    ('value' in message || 'done' in message)
+  );
+};
+
+export type JsonRpcMessage =
+  | FunctionCallMessage
+  | FunctionCallResponse
+  | ErrorResponse;
