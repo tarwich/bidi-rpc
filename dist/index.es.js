@@ -63,8 +63,8 @@ const i = "2.0", p = (e) => e.jsonrpc === i && typeof e.method == "string" && Ar
         const t = a.get(r.id);
         t && (t.reject(r.error), a.delete(r.id));
       }
-    } catch (r) {
-      console.error(r), e.send(
+    } catch {
+      e.send(
         JSON.stringify({
           jsonrpc: i,
           error: { code: -32601, message: "Invalid JSON" }
