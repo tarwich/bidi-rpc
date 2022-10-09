@@ -1,5 +1,5 @@
 {
-  "name": "bidi-rpc",
+  "name": "@tarwich/bidi-rpc",
   "version": "1.0.0",
   "description": "Bi-directional RPC over websockets",
   "main": "./dist/index.umd.js",
@@ -10,8 +10,10 @@
     "test": "jest --coverage --coverageReporters json-summary text"
   },
   "keywords": [],
-  "author": "",
+  "author": "Samuel Dillow",
   "license": "MIT",
+  "private": false,
+  "repository": "https://github.com/tarwich/bidi-rpc",
   "devDependencies": {
     "@types/jest": "^29.1.2",
     "@types/node": "^18.8.3",

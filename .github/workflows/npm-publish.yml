@@ -1,0 +1,37 @@
+# Whenever a push is made to master, build, update the version, and publish to
+# npm
+name: npm-publish
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 14
+      - run: npm ci
+      - run: npm run build
+      - run: |
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+          git config --global user.name "${{ github.actor }}"
+          npm version minor -m "Bump version to %s"
+      - uses: JS-DevTools/npm-publish@v1
+        with:
+          token: ${{ secrets.NPM_TOKEN }}
+          access: public
+      # Reset the commit so that EndBug/add-and-commit can commit and push
+      - run: git reset --soft HEAD~1
+      - run: git status
+      - run: cat package.json | grep version
+      - uses: EndBug/add-and-commit@v9.1.0
+        with:
+          add: '.'
+          message: 'Bump version'
