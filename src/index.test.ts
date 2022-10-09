@@ -1,6 +1,6 @@
 import 'jest-extended';
 import 'jest-json';
-import { ISocket, makeSocketRpc } from './index';
+import { AsyncIterableSink, ISocket, makeSocketRpc } from './index';
 
 interface ISocketPrivate extends ISocket {
   listeners: Record<string, ((arg: any) => void)[]>;
@@ -206,4 +206,98 @@ describe('SocketRPC', () => {
       },
     });
   });
+
+  // We should be able to call an endpoint and receive streaming results
+  it('should support streaming', async () => {
+    const serverRpc = makeSocketRpc(server, {
+      foo: async function* () {
+        yield 'bar';
+        yield 'bin';
+        yield 'baz';
+      },
+    });
+
+    const clientRpc = makeSocketRpc<{ foo(): AsyncIterableIterator<string> }>(
+      client
+    );
+
+    const result = await clientRpc.foo();
+
+    expect(await result.next()).toMatchObject({ value: 'bar', done: false });
+    expect(await result.next()).toMatchObject({ value: 'bin', done: false });
+    expect(await result.next()).toMatchObject({ value: 'baz', done: false });
+    expect(await result.next()).toMatchObject({ value: undefined, done: true });
+  }, 500);
+
+  // Use foreach on streaming results
+  it('should support streaming with foreach', async () => {
+    const serverRpc = makeSocketRpc(server, {
+      foo: async function* () {
+        yield 'bar';
+        yield 'baz';
+      },
+    });
+
+    const clientRpc = makeSocketRpc<{ foo(): AsyncIterableIterator<string> }>(
+      client
+    );
+
+    const result = await clientRpc.foo();
+
+    const values: string[] = [];
+
+    for await (const value of result) {
+      values.push(value);
+    }
+
+    expect(values).toEqual(['bar', 'baz']);
+  });
+
+  // Handle async iterators that yield results with an inner function that is an
+  // event handler
+  it('should support streaming with event handlers', async () => {
+    const dispatcher = {
+      handlers: [] as { (event: any): void }[],
+      on: (event: any, handler: (event: any) => void) => {
+        dispatcher.handlers.push(handler);
+      },
+      emit: (event: any, value: any) => {
+        for (const handler of dispatcher.handlers) {
+          handler(value);
+        }
+      },
+    };
+
+    const serverRpc = makeSocketRpc(server, {
+      foo: async function () {
+        const sink = new AsyncIterableSink<string>();
+
+        dispatcher.on('event', (event: any) => {
+          sink.push(event);
+        });
+
+        setTimeout(() => {
+          dispatcher.emit('event', 'bar');
+          dispatcher.emit('event', 'baz');
+          sink.end();
+        });
+
+        return sink;
+      },
+    });
+
+    const clientRpc = makeSocketRpc<{ foo(): AsyncIterableIterator<string> }>(
+      client
+    );
+
+    const result = await clientRpc.foo();
+
+    const values: string[] = [];
+
+    for await (const value of result) {
+      values.push(value);
+    }
+
+    expect(values).toEqual(['bar', 'baz']);
+  }, 500);
 });

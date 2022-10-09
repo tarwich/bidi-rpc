@@ -1,13 +1,17 @@
-import { uuidV4 } from './uuid';
 import {
-  jsonrpc,
-  FunctionCallMessage,
-  isFunctionCallMessage,
-  methodNotFoundError,
   internalError,
-  FunctionCallResponse,
-  ErrorResponse,
+  isErrorResponse,
+  isFunctionCallMessage,
+  isFunctionCallResponse,
+  isIterableFunctionCallResponse,
+  jsonrpc,
+  JsonRpcMessage,
+  methodNotFoundError,
 } from './jsonrpc';
+import { isAsyncIterable } from './lib/is-iterable';
+import { AsyncIterableSink } from './lib/iterable-sink';
+import { uuidV4 } from './uuid';
+export { AsyncIterableSink } from './lib/iterable-sink';
 
 enum WebSocketState {
   CONNECTING = 0,
@@ -41,15 +45,6 @@ type FilterValues<T, U> = {
 }[keyof T];
 type FilterProperties<T, U> = Pick<T, FilterValues<T, U>>;
 
-type FunctionPropertyNames<T> = {
-  [K in keyof T]: K extends string
-    ? T[K] extends (...args: any[]) => any
-      ? K
-      : never
-    : never;
-}[keyof T];
-type Functions<T> = { [K in FunctionPropertyNames<T>]: T[K] };
-
 type ToPromise<R> = R extends Promise<any> ? R : Promise<R>;
 
 export type PromiseMethods<T> = {
@@ -75,6 +70,7 @@ export const makeSocketRpc = <
     {
       resolve: (value: any) => void;
       reject: (reason: any) => void;
+      iterableSink?: AsyncIterableSink<any>;
     }
   >();
   const connected = new Promise<void>((resolve, reject) => {
@@ -124,10 +120,9 @@ export const makeSocketRpc = <
 
   socket.addEventListener('message', async (event) => {
     try {
-      const data = JSON.parse(event.data) as
-        | FunctionCallMessage
-        | FunctionCallResponse
-        | ErrorResponse;
+      // The data coule be a function call, a response to a function call, or an
+      // error
+      const data = JSON.parse(event.data) as JsonRpcMessage;
 
       const send = (message: any) =>
         socket.send(JSON.stringify({ jsonrpc, ...message }));
@@ -137,6 +132,9 @@ export const makeSocketRpc = <
         return;
       }
 
+      console.log('Received message', data);
+
+      // Handle function call
       if (isFunctionCallMessage(data)) {
         const method =
           localHandlers && localHandlers[data.method as keyof TLocal];
@@ -148,18 +146,53 @@ export const makeSocketRpc = <
 
         try {
           const result = await method.call(localHandlers, ...data.params);
-          return send({ id: data.id, result });
+
+          // If the result is async iterable, send a notification for each item
+          if (isAsyncIterable(result)) {
+            for await (const item of result) {
+              send({ id: data.id, value: item });
+            }
+
+            return send({ id: data.id, done: true });
+          }
+          // Only one result, send a response
+          else {
+            send({ id: data.id, result });
+          }
+
+          return;
         } catch (e) {
           return send(internalError(data.id, e));
         }
-      } else if ('result' in data) {
+      }
+      // Handle function call response
+      else if (isFunctionCallResponse(data)) {
         const call = calls.get(data.id);
 
         if (call) {
           call.resolve(data.result);
           calls.delete(data.id);
         }
-      } else if ('error' in data) {
+      }
+      // Handle async iterable response
+      else if (isIterableFunctionCallResponse(data)) {
+        const call = calls.get(data.id);
+
+        if (call) {
+          const sink = call.iterableSink || new AsyncIterableSink();
+          call.iterableSink = sink;
+
+          if (data.done) {
+            sink.end();
+            calls.delete(data.id);
+          } else {
+            sink.push(data.value);
+            call.resolve(sink);
+          }
+        }
+      }
+      // Handle error response
+      else if (isErrorResponse(data)) {
         const call = calls.get(data.id);
 
         if (call) {
