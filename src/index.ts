@@ -169,7 +169,6 @@ export const makeSocketRpc = <
       }
     } catch (error) {
       // Handle generic errors, such as JSON parsing errors
-      console.error(error);
       socket.send(
         JSON.stringify({
           jsonrpc,

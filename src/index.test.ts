@@ -190,14 +190,20 @@ describe('SocketRPC', () => {
   it('should return a parse error', async () => {
     makeSocketRpc(server, {});
 
+    let receivedMessage: any;
     client.addEventListener('message', (event: any) => {
-      expect(event.data).toMatchObject({
-        code: -32700,
-        message: 'Parse error',
-      });
+      receivedMessage = event.data;
     });
 
     const result = client.send('not json');
     expect(result).toBeUndefined();
+
+    expect(JSON.parse(receivedMessage)).toMatchObject({
+      jsonrpc: '2.0',
+      error: {
+        code: -32601,
+        message: 'Invalid JSON',
+      },
+    });
   });
 });

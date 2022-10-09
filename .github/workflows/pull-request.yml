@@ -27,7 +27,7 @@ jobs:
       - name: Run tests
         run: |
           mkdir -p coverage
-          npm test -- --coverage --coverageReporters json-summary text | tee coverage/coverage.txt
+          npm test | tee coverage/coverage.txt
         env:
           CI: true
       - name: Jest coverage comment

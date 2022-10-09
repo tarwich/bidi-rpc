@@ -7,7 +7,7 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "vite build && tsc",
-    "test": "jest src/.*\\.test\\.[tj]s$"
+    "test": "jest --coverage --coverageReporters json-summary text"
   },
   "keywords": [],
   "author": "",
