@@ -183,6 +183,7 @@ export const makeSocketRpc = <
           if (data.done) {
             sink.end();
             calls.delete(data.id);
+            call.resolve(sink);
           } else {
             sink.push(data.value);
             call.resolve(sink);

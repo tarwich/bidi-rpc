@@ -65,38 +65,38 @@ const C = (e, t) => {
       { once: !0 }
     ) : e.readyState === 1 ? u() : r(new Error("Socket is closed"));
   }), f = (u, r) => {
-    const s = q(), n = JSON.stringify({ jsonrpc: d, id: s, method: u, params: r });
-    return new Promise((i, l) => {
-      o.set(s, { resolve: i, reject: l }), e.send(n);
+    const i = q(), n = JSON.stringify({ jsonrpc: d, id: i, method: u, params: r });
+    return new Promise((s, l) => {
+      o.set(i, { resolve: s, reject: l }), e.send(n);
     });
   }, h = new Proxy(
     {},
     {
       get(u, r) {
-        return async (...s) => (await c, f(String(r), s));
+        return async (...i) => (await c, f(String(r), i));
       }
     }
   );
   return e.addEventListener("message", async (u) => {
     try {
-      const r = JSON.parse(u.data), s = (n) => e.send(JSON.stringify({ jsonrpc: d, ...n }));
+      const r = JSON.parse(u.data), i = (n) => e.send(JSON.stringify({ jsonrpc: d, ...n }));
       if (r.jsonrpc !== d)
         return;
       if (v(r)) {
         const n = t && t[r.method];
         if (!n || typeof n != "function")
-          return s(S(r.id));
+          return i(S(r.id));
         try {
-          const i = await n.call(t, ...r.params);
-          if (E(i)) {
-            for await (const l of i)
-              s({ id: r.id, value: l });
-            return s({ id: r.id, done: !0 });
+          const s = await n.call(t, ...r.params);
+          if (E(s)) {
+            for await (const l of s)
+              i({ id: r.id, value: l });
+            return i({ id: r.id, done: !0 });
           } else
-            s({ id: r.id, result: i });
+            i({ id: r.id, result: s });
           return;
-        } catch (i) {
-          return s(w(r.id, i));
+        } catch (s) {
+          return i(w(r.id, s));
         }
       } else if (g(r)) {
         const n = o.get(r.id);
@@ -104,8 +104,8 @@ const C = (e, t) => {
       } else if (j(r)) {
         const n = o.get(r.id);
         if (n) {
-          const i = n.iterableSink || new b();
-          n.iterableSink = i, r.done ? (i.end(), o.delete(r.id)) : (i.push(r.value), n.resolve(i));
+          const s = n.iterableSink || new b();
+          n.iterableSink = s, r.done ? (s.end(), o.delete(r.id), n.resolve(s)) : (s.push(r.value), n.resolve(s));
         }
       } else if (m(r)) {
         const n = o.get(r.id);

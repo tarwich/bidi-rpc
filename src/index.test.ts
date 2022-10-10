@@ -300,4 +300,22 @@ describe('SocketRPC', () => {
 
     expect(values).toEqual(['bar', 'baz']);
   }, 500);
+
+  // If an async iterator yields zero results and is closed, we should still
+  // receive a response
+  it('should support streaming with no results', async () => {
+    const serverRpc = makeSocketRpc(server, {
+      foo: async function* () {
+        yield* [];
+      },
+    });
+
+    const clientRpc = makeSocketRpc<{ foo(): AsyncIterableIterator<string> }>(
+      client
+    );
+
+    const result = await clientRpc.foo();
+
+    expect(await result.next()).toMatchObject({ value: undefined, done: true });
+  }, 500);
 });
