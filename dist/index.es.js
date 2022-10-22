@@ -16,7 +16,7 @@ const d = "2.0", v = (e) => e.jsonrpc === d && typeof e.method == "string" && Ar
     message: "Unexpected error",
     data: t
   }
-}), g = (e) => e && e.jsonrpc === d && typeof e.id == "string" && e.result !== void 0, m = (e) => e && e.jsonrpc === d && typeof e.id == "string" && e.error && typeof e.error.message == "string", j = (e) => e && e.jsonrpc === d && typeof e.id == "string" && ("value" in e || "done" in e), E = (e) => e && typeof e[Symbol.asyncIterator] == "function";
+}), g = (e) => e && e.jsonrpc === d && typeof e.id == "string", m = (e) => e && e.jsonrpc === d && typeof e.id == "string" && e.error && typeof e.error.message == "string", j = (e) => e && e.jsonrpc === d && typeof e.id == "string" && ("value" in e || "done" in e), E = (e) => e && typeof e[Symbol.asyncIterator] == "function";
 class b {
   constructor() {
     a(this, "_done");
@@ -98,9 +98,6 @@ const C = (e, t) => {
         } catch (s) {
           return i(w(r.id, s));
         }
-      } else if (g(r)) {
-        const n = o.get(r.id);
-        n && (n.resolve(r.result), o.delete(r.id));
       } else if (j(r)) {
         const n = o.get(r.id);
         if (n) {
@@ -110,6 +107,9 @@ const C = (e, t) => {
       } else if (m(r)) {
         const n = o.get(r.id);
         n && (n.reject(r.error), o.delete(r.id));
+      } else if (g(r)) {
+        const n = o.get(r.id);
+        n && (n.resolve(r.result), o.delete(r.id));
       }
     } catch {
       e.send(
