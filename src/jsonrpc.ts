@@ -46,10 +46,7 @@ export const isFunctionCallResponse = (
   message?: any
 ): message is FunctionCallResponse => {
   return (
-    message &&
-    message.jsonrpc === jsonrpc &&
-    typeof message.id === 'string' &&
-    message.result !== undefined
+    message && message.jsonrpc === jsonrpc && typeof message.id === 'string'
   );
 };
 

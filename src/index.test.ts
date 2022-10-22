@@ -1,6 +1,8 @@
+import EventEmitter from 'events';
 import 'jest-extended';
 import 'jest-json';
 import { AsyncIterableSink, ISocket, makeSocketRpc } from './index';
+import { JsonRpcMessage } from './jsonrpc';
 
 interface ISocketPrivate extends ISocket {
   listeners: Record<string, ((arg: any) => void)[]>;
@@ -318,4 +320,36 @@ describe('SocketRPC', () => {
 
     expect(await result.next()).toMatchObject({ value: undefined, done: true });
   }, 500);
+
+  it('should resolve client promise when server response is empty', async () => {
+    // Create a mock ws server that we can control
+    const clientSocket = new (class FakeSocket {
+      // Set socket status to open
+      readyState = 1;
+
+      callback: Function;
+
+      addEventListener(message: string, callback: Function) {
+        if (message === 'message') {
+          this.callback = callback;
+        }
+      }
+
+      send(data: string) {
+        const message = JSON.parse(data) as JsonRpcMessage;
+        const response: JsonRpcMessage = {
+          jsonrpc: '2.0',
+          id: message.id,
+          result: undefined,
+        };
+        // Fake receiving a response from the server
+        this.callback({ data: JSON.stringify(response) });
+      }
+    })();
+    const client = makeSocketRpc<{ foo(): void }>(clientSocket);
+
+    const result = client.foo();
+
+    await expect(result).resolves.toBeUndefined();
+  }, 200);
 });

@@ -163,15 +163,6 @@ export const makeSocketRpc = <
           return send(internalError(data.id, e));
         }
       }
-      // Handle function call response
-      else if (isFunctionCallResponse(data)) {
-        const call = calls.get(data.id);
-
-        if (call) {
-          call.resolve(data.result);
-          calls.delete(data.id);
-        }
-      }
       // Handle async iterable response
       else if (isIterableFunctionCallResponse(data)) {
         const call = calls.get(data.id);
@@ -196,6 +187,17 @@ export const makeSocketRpc = <
 
         if (call) {
           call.reject(data.error);
+          calls.delete(data.id);
+        }
+      }
+      // Handle function call response
+      //
+      // This must be last because it will match all other types of responses
+      else if (isFunctionCallResponse(data)) {
+        const call = calls.get(data.id);
+
+        if (call) {
+          call.resolve(data.result);
           calls.delete(data.id);
         }
       }
