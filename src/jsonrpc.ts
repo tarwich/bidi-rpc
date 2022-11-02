@@ -26,15 +26,19 @@ export const methodNotFoundError = (id: string) => ({
   },
 });
 
-export const internalError = (id: string, error: any) => ({
-  jsonrpc,
-  id,
-  error: {
-    code: -32603,
-    message: 'Unexpected error',
-    data: error,
-  },
-});
+export const internalError = (id: string, error: any) => {
+  console.error(error);
+
+  return {
+    jsonrpc,
+    id,
+    error: {
+      code: -32603,
+      message: 'Unexpected error',
+      data: error,
+    },
+  };
+};
 
 export type FunctionCallResponse = {
   jsonrpc: typeof jsonrpc;

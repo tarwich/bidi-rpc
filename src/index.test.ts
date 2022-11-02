@@ -1,4 +1,3 @@
-import EventEmitter from 'events';
 import 'jest-extended';
 import 'jest-json';
 import { AsyncIterableSink, ISocket, makeSocketRpc } from './index';
@@ -50,7 +49,7 @@ describe('SocketRPC', () => {
         jsonrpc: '2.0',
         id: expect.any(String),
         method: 'foo',
-        params: ['bar'],
+        params: [{ type: 'string', value: '"bar"' }],
       })
     );
   }, 1000);
@@ -322,34 +321,69 @@ describe('SocketRPC', () => {
   }, 500);
 
   it('should resolve client promise when server response is empty', async () => {
-    // Create a mock ws server that we can control
-    const clientSocket = new (class FakeSocket {
-      // Set socket status to open
-      readyState = 1;
-
-      callback: Function;
-
-      addEventListener(message: string, callback: Function) {
-        if (message === 'message') {
-          this.callback = callback;
-        }
-      }
-
-      send(data: string) {
-        const message = JSON.parse(data) as JsonRpcMessage;
-        const response: JsonRpcMessage = {
+    client.addEventListener.mockImplementation(function (event, callback) {
+      if (event === 'message') this.callback = callback;
+    });
+    client.send.mockImplementation(function (data) {
+      const message = JSON.parse(data) as JsonRpcMessage;
+      // Fake receiving a response from the server
+      this.callback({
+        data: JSON.stringify({
           jsonrpc: '2.0',
           id: message.id,
           result: undefined,
-        };
-        // Fake receiving a response from the server
-        this.callback({ data: JSON.stringify(response) });
-      }
-    })();
-    const client = makeSocketRpc<{ foo(): void }>(clientSocket);
+        }),
+      });
+    });
+    const clientRpc = makeSocketRpc<{ foo(): void }>(client);
 
-    const result = client.foo();
+    const result = clientRpc.foo();
 
     await expect(result).resolves.toBeUndefined();
+  }, 200);
+
+  it('should be able to transmit a JavaScript function', async () => {
+    // - Call the server, pasing in a function
+    // - The server executes the function and returns the result
+    // - The client receives the result
+    const handlers = {
+      foo: jest.fn().mockImplementation(async function (fn: () => string) {
+        return `test: ${fn()}`;
+      }),
+    };
+    const serverRpc = makeSocketRpc(server, handlers);
+
+    const clientRpc = makeSocketRpc<{ foo(fn: () => string): Promise<string> }>(
+      client
+    );
+
+    const promise = clientRpc.foo(() => 'asdf');
+
+    await expect(promise).resolves.toBe('test: asdf');
+    expect(handlers.foo).toHaveBeenCalledWith(expect.any(Function));
+  }, 200);
+
+  it('should be able to call require() in the transmittable function', async () => {
+    const saved = { require };
+
+    const handlers = {
+      foo: jest.fn().mockImplementation(async function (fn: () => string) {
+        const { require } = saved;
+
+        fn = new Function('require', `return ${fn}`)(require);
+
+        return `test: ${fn()}`;
+      }),
+    };
+    makeSocketRpc(server, handlers);
+
+    const clientRpc = makeSocketRpc<{ foo(fn: () => string): Promise<string> }>(
+      client
+    );
+
+    const promise = clientRpc.foo(() => require('os').platform());
+
+    await expect(promise).resolves.toBe(`test: ${process.platform}`);
+    expect(handlers.foo).toHaveBeenCalledWith(expect.any(Function));
   }, 200);
 });
