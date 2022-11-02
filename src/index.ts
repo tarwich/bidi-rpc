@@ -10,6 +10,7 @@ import {
 } from './jsonrpc';
 import { isAsyncIterable } from './lib/is-iterable';
 import { AsyncIterableSink } from './lib/iterable-sink';
+import { decodeParams, encodeParams } from './lib/parameters';
 import { uuidV4 } from './uuid';
 export { AsyncIterableSink } from './lib/iterable-sink';
 
@@ -95,8 +96,14 @@ export const makeSocketRpc = <
 
   const sendCall = (method: string, params: any[]) => {
     const id = uuidV4();
+
     // TODO: Handle errors on JSON.stringify
-    const payload = JSON.stringify({ jsonrpc, id, method, params });
+    const payload = JSON.stringify({
+      jsonrpc,
+      id,
+      method,
+      params: encodeParams(params),
+    });
 
     return new Promise((resolve, reject) => {
       calls.set(id, { resolve, reject });
@@ -143,7 +150,8 @@ export const makeSocketRpc = <
         }
 
         try {
-          const result = await method.call(localHandlers, ...data.params);
+          const params = decodeParams(data.params);
+          const result = await method.call(localHandlers, ...params);
 
           // If the result is async iterable, send a notification for each item
           if (isAsyncIterable(result)) {
@@ -202,6 +210,8 @@ export const makeSocketRpc = <
         }
       }
     } catch (error) {
+      console.error('Error handling message', error, event.data);
+
       // Handle generic errors, such as JSON parsing errors
       socket.send(
         JSON.stringify({
